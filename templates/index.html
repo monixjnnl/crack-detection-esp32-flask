@@ -1,94 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Crack Detection Dashboard</title>
-  <style>
-    body {
-      background: #121212;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-
-    h1 {
-      color: #00ffae;
-    }
-
-    .video-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-top: 20px;
-    }
-
-    .status {
-      margin-top: 20px;
-      font-size: 1.5em;
-    }
-
-    .status span {
-      font-weight: bold;
-    }
-
-    .status.crack {
-      color: red;
-    }
-
-    .status.no-crack {
-      color: #00ffae;
-    }
-
-    .footer {
-      margin-top: 30px;
-      font-size: 0.8em;
-      color: #888;
-    }
-
-    iframe {
-      border: none;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Crack Detection Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>🕵️ Crack Detection Monitor</h1>
+<body class="bg-purple-800 text-white min-h-screen flex flex-col items-center py-6">
 
-  <div class="video-container">
-    <img src="/video" width="640" height="480" alt="Live Video Feed"/>
+  <h1 class="text-3xl font-bold mb-6">🔍 Crack Detection System</h1>
+
+  <div class="border-4 border-white rounded-xl overflow-hidden shadow-lg">
+    <img id="video-stream" src="/video" alt="Live Stream" class="w-[640px] h-auto">
   </div>
 
-  <div id="status" class="status">⌛ Waiting for detection...</div>
+  <div id="status" class="text-center text-lg font-semibold mt-4">
+    🔄 Connecting to backend...
+  </div>
 
-  <div class="footer">
-    ESP32-CAM + Flask + Roboflow | Real-Time Crack Detection
+  <h2 class="text-xl mt-8 mb-2">📸 Recent Detections</h2>
+  <div id="recent-detections" class="flex flex-wrap justify-center gap-6 mt-2">
+    <!-- Recent detections will be injected here -->
   </div>
 
   <script>
-    async function pollStatus() {
-      try {
-        const response = await fetch("/status");
-        const data = await response.json();
-
-        const statusDiv = document.getElementById("status");
-
-        if (data.crack) {
-          statusDiv.textContent = `❌ Crack detected! Precision: ${data.confidence}%`;
-          statusDiv.className = "status crack";
-        } else {
-          statusDiv.textContent = `✅ No cracks detected. Precision: ${data.confidence}%`;
-          statusDiv.className = "status no-crack";
-        }
-
-      } catch (err) {
-        const statusDiv = document.getElementById("status");
-        statusDiv.textContent = "❌ Lost connection to backend";
-        statusDiv.className = "status crack";
-      }
+    // Update detection status
+    function updateStatus() {
+      fetch('/status')
+        .then(res => res.json())
+        .then(data => {
+          const status = document.getElementById('status');
+          if (data.crack) {
+            status.innerHTML = `❗ Crack Detected — Precision: ${data.confidence}%`;
+            status.classList.remove('text-green-400');
+            status.classList.add('text-red-400');
+          } else {
+            status.innerHTML = `✅ No crack detected`;
+            status.classList.remove('text-red-400');
+            status.classList.add('text-green-400');
+          }
+        })
+        .catch(() => {
+          const status = document.getElementById('status');
+          status.innerHTML = "❌ Lost connection to backend";
+          status.classList.remove('text-green-400', 'text-red-400');
+        });
     }
 
-    setInterval(pollStatus, 1000);
+    // Load recent detections thumbnails
+    function loadRecentDetections() {
+      fetch('/recent')
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('recent-detections');
+          container.innerHTML = ''; // clear previous
+          data.forEach(d => {
+            const box = document.createElement('div');
+            box.className = 'bg-purple-600 p-4 rounded-xl shadow-md text-center';
+
+            const img = document.createElement('img');
+            img.src = '/static/' + d.image;
+            img.alt = 'Detection';
+            img.className = 'w-32 h-32 object-cover rounded-md mb-2 border-2 border-white';
+
+            const text = document.createElement('p');
+            text.textContent = `Precision: ${d.confidence}%`;
+
+            box.appendChild(img);
+            box.appendChild(text);
+            container.appendChild(box);
+          });
+        });
+    }
+
+    setInterval(() => {
+      updateStatus();
+      loadRecentDetections();
+    }, 5000);
+
+    updateStatus();
+    loadRecentDetections();
   </script>
 </body>
 </html>
