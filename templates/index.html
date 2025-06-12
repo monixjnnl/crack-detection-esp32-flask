@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crack Detection Dashboard</title>
+  <style>
+    body {
+      background: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #00ffae;
+    }
+
+    .video-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 1.5em;
+    }
+
+    .status span {
+      font-weight: bold;
+    }
+
+    .status.crack {
+      color: red;
+    }
+
+    .status.no-crack {
+      color: #00ffae;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 0.8em;
+      color: #888;
+    }
+
+    iframe {
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🕵️ Crack Detection Monitor</h1>
+
+  <div class="video-container">
+    <img src="/video" width="640" height="480" alt="Live Video Feed"/>
+  </div>
+
+  <div id="status" class="status">⌛ Waiting for detection...</div>
+
+  <div class="footer">
+    ESP32-CAM + Flask + Roboflow | Real-Time Crack Detection
+  </div>
+
+  <script>
+    async function pollStatus() {
+      try {
+        const response = await fetch("/status");
+        const data = await response.json();
+
+        const statusDiv = document.getElementById("status");
+
+        if (data.crack) {
+          statusDiv.textContent = `❌ Crack detected! Precision: ${data.confidence}%`;
+          statusDiv.className = "status crack";
+        } else {
+          statusDiv.textContent = `✅ No cracks detected. Precision: ${data.confidence}%`;
+          statusDiv.className = "status no-crack";
+        }
+
+      } catch (err) {
+        const statusDiv = document.getElementById("status");
+        statusDiv.textContent = "❌ Lost connection to backend";
+        statusDiv.className = "status crack";
+      }
+    }
+
+    setInterval(pollStatus, 1000);
+  </script>
+</body>
+</html>
